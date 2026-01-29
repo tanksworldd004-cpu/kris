@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Hz Demo Lab</title>
+
+<style>
+:root {
+    --bg: #0f0f0f;
+    --panel: #161616;
+    --accent: #00c6ff;
+    --text: #ffffff;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+/* ☰ BURGER */
+.burger {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+/* MENU */
+.menu {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 250px;
+    height: 100%;
+    background: var(--panel);
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 999;
+}
+
+.menu.active {
+    left: 0;
+}
+
+.menu button {
+    width: 100%;
+    padding: 15px;
+    background: none;
+    border: none;
+    color: var(--text);
+    text-align: left;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.menu button:hover {
+    background: #222;
+}
+
+/* CONTENT */
+.content {
+    padding: 80px 20px;
+}
+
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+/* HZ */
+.grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.cube {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 15px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+canvas {
+    background: black;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+</style>
+</head>
+<body>
+
+<!-- ☰ -->
+<div class="burger" onclick="toggleMenu()">☰</div>
+
+<!-- MENU -->
+<div class="menu" id="menu">
+    <button onclick="openSection('hz')">🎥 Герци</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <!-- SECTION: HZ -->
+    <div class="section active" id="hz">
+        <h1>Демонстрація Герців</h1>
+        <div class="grid">
+            <div class="cube" onclick="startHz(10)">10 Hz</div>
+            <div class="cube" onclick="startHz(30)">30 Hz</div>
+            <div class="cube" onclick="startHz(60)">60 Hz</div>
+            <div class="cube" onclick="startHz(90)">90 Hz</div>
+            <div class="cube" onclick="startHz(120)">120 Hz</div>
+        </div>
+
+        <canvas id="canvas" width="600" height="200"></canvas>
+    </div>
+
+</div>
+
+<script>
+/* ===== CORE ENGINE (НЕ ЧІПАТИ) ===== */
+
+function toggleMenu() {
+    document.getElementById("menu").classList.toggle("active");
+}
+
+function openSection(id) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    toggleMenu();
+}
+
+/* ===== HZ ENGINE ===== */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let hz = 60;
+let last = 0;
+let x = 0;
+
+function startHz(value) {
+    hz = value;
+    x = 0;
+    last = 0;
+    requestAnimationFrame(loop);
+}
+
+function loop(t) {
+    if (!last) last = t;
+    if (t - last >= 1000 / hz) {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        x += 10;
+        if (x > canvas.width) x = -50;
+        ctx.fillStyle = "#00c6ff";
+        ctx.fillRect(x,75,50,50);
+        last = t;
+    }
+    requestAnimationFrame(loop);
+}
+</script>
+
+</body>
+</html>
+<script>
+/* ===== PLUGIN ENGINE ===== */
+
+const Plugins = [];
+
+function registerPlugin(plugin) {
+    Plugins.push(plugin);
+
+    // MENU
+    const btn = document.createElement("button");
+    btn.innerText = plugin.menu;
+    btn.onclick = () => openSection(plugin.id);
+    document.getElementById("menu").appendChild(btn);
+
+    // SECTION
+    const section = document.createElement("div");
+    section.className = "section";
+    section.id = plugin.id;
+    section.innerHTML = plugin.html;
+    document.querySelector(".content").appendChild(section);
+
+    // INIT
+    if (plugin.init) plugin.init();
+}
+</script>
+<script>
+registerPlugin({
+    id: "pc-load",
+    menu: "🧠 Нагрузка ПК",
+    html: `
+        <h1>Нагрузка ПК</h1>
+        <p>10 режимів. Чим більше кульок — тим сильніше навантаження CPU.</p>
+
+        <div class="grid">
+            <div class="cube" onclick="startLoad(20)">1</div>
+            <div class="cube" onclick="startLoad(40)">2</div>
+            <div class="cube" onclick="startLoad(80)">3</div>
+            <div class="cube" onclick="startLoad(120)">4</div>
+            <div class="cube" onclick="startLoad(180)">5</div>
+            <div class="cube" onclick="startLoad(250)">6</div>
+            <div class="cube" onclick="startLoad(350)">7</div>
+            <div class="cube" onclick="startLoad(500)">8</div>
+            <div class="cube" onclick="startLoad(700)">9</div>
+            <div class="cube" onclick="startLoad(1000)">10</div>
+        </div>
+
+        <canvas id="loadCanvas" width="700" height="350"></canvas>
+    `,
+    init() {
+        const canvas = document.getElementById("loadCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let balls = [];
+        let gravity = 0.45;
+        let running = false;
+
+        window.startLoad = function(count) {
+            balls = [];
+            running = true;
+
+            for (let i = 0; i < count; i++) {
+                balls.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vy: Math.random() * 2,
+                    r: 4 + Math.random() * 5
+                });
+            }
+
+            requestAnimationFrame(loop);
+        };
+
+        function loop() {
+            if (!running) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let b of balls) {
+                b.vy += gravity;
+                b.y += b.vy;
+
+                if (b.y > canvas.height) {
+                    b.y = 0;
+                    b.vy = 0;
+                    b.x = Math.random() * canvas.width;
+                }
+
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fillStyle = "#00c6ff";
+                ctx.fill();
+            }
+
+            requestAnimationFrame(loop);
+        }
+    }
+});
+</script>
